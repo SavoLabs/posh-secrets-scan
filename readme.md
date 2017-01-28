@@ -22,7 +22,7 @@ to explain how to configure it.
 
 Rules are defined in `.secrets-scan.json` in the root directory of the `Secrets-Scan.ps1`.
 Additionally, a scanned directory can contain its own `.secrets-scan.json` that will be
-merged with the _root_ configuration. See the *Rules* section below for more information.
+merged with the _root_ configuration. See the [*Rules*](#rules) section below for more information.
 
 ## Violations
 
