@@ -31,13 +31,16 @@ of the number of violations found. The script will output the full path of the
 files that have violations, and the matching violation.
 
 ```
-C:\code\my-project\super-secret-key.txt: AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT
-C:\code\my-project\super-secret-key.txt: AWS_ACCESS_KEY=RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY
-C:\code\my-project\Subfolder\more-secrets.txt: aws_account_id:129398745743
-C:\code\my-project\Subfolder\my-key.pem: -----BEGIN RSA PRIVATE KEY-----
-C:\code\my-project\Subfolder\my-key.pub: -----BEGIN PUBLIC KEY-----
+[Warning]: Found 1 Violation that was overridden by exception rules.
+	[-] C:\code\my-project\super-secret-key.txt: AWS_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
 [Error]: Found 5 Violations.
+	[x] C:\code\my-project\super-secret-key.txt: AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT
+	[x] C:\code\my-project\super-secret-key.txt: AWS_ACCESS_KEY=RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY
+	[x] C:\code\my-project\Subfolder\more-secrets.txt: aws_account_id:129398745743
+	[x] C:\code\my-project\Subfolder\my-key.pem: -----BEGIN RSA PRIVATE KEY-----
+	[x] C:\code\my-project\Subfolder\my-key.pub: -----BEGIN PUBLIC KEY-----
+
 
 Possible mitigations:
 	- Mark false positives as allowed by adding exceptions to '.secrets-scan.json'

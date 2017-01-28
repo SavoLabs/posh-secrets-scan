@@ -77,11 +77,23 @@ function Scan-Path {
 				}
 			}
 			if($warnings.Count -gt 0) {
-				"`n[Warning]: Found $($warnings.Count) Violations that were overridden by exception rules.`n" | Write-Host;
+				if($warnings.Count -eq 1) {
+					$vtext = "Violation";
+					$wtext = "was";
+				} else {
+					$wtext = "were";
+					$vtext = "Violations";
+				}
+				"`n[Warning]: Found $($warnings.Count) $vtext that $wtext overridden by exception rules.`n" | Write-Host;
 				$warnings | foreach { "`t[-] $_" | Write-Host; };
 			}
 			if($violations.Count -gt 0) {
-				"`n[Error]: Found $($violations.Count) Violations.`n" | Write-Host;
+				if($violations.Count -eq 1) {
+					$vtext = "Violation";
+				} else {
+					$vtext = "Violations";
+				}
+				"`n[Error]: Found $($violations.Count) $vtext.`n" | Write-Host;
 				$violations | foreach { "`t[x] $_" | Write-Host; };
 				"`nPossible mitigations:`n
 	- Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
