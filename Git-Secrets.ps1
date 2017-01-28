@@ -13,30 +13,20 @@ function Scan-Path {
   param (
     [String] $Path
   )
+	begin {
+		$rules = Load-Rules -Path "./rules.json";
+	}
   process {
-    Recursive-Scan -Path $Path;
-  }
-}
-
-function Recursive-Scan {
-  param (
-    [String] $Path
-  )
-  begin {
-    $rules = Load-Rules -Path "./rules.json";
-  }
-  process {
-    $children = Get-ChildItem -Path $Path;
+		$children = @(Get-ChildItem -Path (Resolve-Path -Path $Path) -Recurse);
 		[System.Collections.ArrayList] $violations = @();
     $children | foreach {
       $item = $_;
-      if ( $item.PSIsContainer ) {
-        return Recursive-Scan -Path $item.FullName;
-      } else {
-        $content = Get-Content -Path $item.FullName;
+			$item | Write-Host;
+      if ( -not $item.PSIsContainer ) {
+				$content = Get-Content -Path $item.FullName;
         $rules.patterns | foreach {
 					$pattern = $_;
-          $content | Select-String -Pattern $pattern | foreach { $_.Matches; } | foreach {
+          $content | Select-String -Pattern $pattern -AllMatches | foreach { $_.Matches; } | foreach {
 						$match = $_
 						$m = $match.Groups[0].Value;
             $result = "$($item.FullName): $($match)";
@@ -46,10 +36,12 @@ function Recursive-Scan {
 						$violations.Add($result) | Out-Null;
           };
         };
+      } else {
+				#return Recursive-Scan -Path $item.FullName;
       }
-    }
+    };
 
-		$violations | Select -Unique | foreach {
+		$violations | foreach {
 			$v = $_
 			$rules.allowed | foreach {
 				$allowed = $_;
@@ -61,7 +53,12 @@ function Recursive-Scan {
 				}
 			}
 		}
-		$violations | Select -Unique;
+		$violations | Write-Host;
+		if($violations.Count -gt 0) {
+			"`n[Error]: Found $($violations.Count) Violations.`n" | Write-Host -ForegroundColor DarkYellow;
+			"Possible mitigations:`n`t- Mark false positives as allowed adding exceptions to 'rules.json'`n`n" | Write-Host -ForegroundColor DarkYellow;
+			exit $violations.Count;
+		}
   }
 }
 
