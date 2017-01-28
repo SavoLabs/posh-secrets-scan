@@ -109,30 +109,34 @@ function Scan-Path {
 
 function Merge-JSON {
 	param (
-		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+		[Parameter(Mandatory=$true)]
 		[PSObject] $Base,
-		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+		[Parameter(Mandatory=$true)]
 		[PSObject] $Ext
 	)
-	$propNames = $($ext | Get-Member -MemberType *Property).Name
-	foreach ($propName in $propNames) {
-		if ($base.PSObject.Properties.Match($propName).Count) {
-			if ($base.$propName.GetType().Name -eq "PSCustomObject") {
-				$base.$propName = Merge-JSON -Base $base.$propName -Ext $ext.$propName;
-			} elseif ( $base.$propName.GetType().Name -eq "Object[]") {
-				$ext.$propName | foreach {
-					if ( $base.$propName -notcontains $_ ) {
-						$base.$propName += $_;
+	process {
+		$propNames = $($ext | Get-Member -MemberType *Property).Name
+		foreach ($propName in $propNames) {
+			if ($base.PSObject.Properties.Match($propName).Count) {
+				if ($base.$propName.GetType().Name -eq "PSCustomObject") {
+					$base.$propName = Merge-JSON -Base $base.$propName -Ext $ext.$propName;
+				} elseif ( $base.$propName.GetType().Name -eq "Object[]") {
+					$ext.$propName | foreach {
+						if ( $base.$propName -notcontains $_ ) {
+							$base.$propName += $_;
+						}
 					}
+				} else {
+					$base.$propName = $ext.$propName;
 				}
 			} else {
-				$base.$propName = $ext.$propName;
+				$base | Add-Member -MemberType NoteProperty -Name $propName -Value $ext.$propName;
 			}
-		} else {
-			$base | Add-Member -MemberType NoteProperty -Name $propName -Value $ext.$propName;
 		}
+		return $base;
 	}
-	return $base;
 }
 
-Scan-Path -Path $Path;
+if( ($Execute -eq $null) -or ($Execute -eq $true) ) {
+	Scan-Path -Path $Path;
+}
