@@ -1,7 +1,10 @@
 param (
 	[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
 	[ValidateScript({Test-Path $_})]
-  [String] $Path
+  [String] $Path,
+	[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+	[ValidateScript({Test-Path $_})]
+	[String] $ConfigFile = "./.secrets-scan.json"
 )
 function Load-Rules {
   param (
@@ -10,23 +13,22 @@ function Load-Rules {
     [String] $Path
   )
   process {
-    return Get-Content -Raw -Path $Path | ConvertFrom-Json;
+    return Get-Content -Raw -Path (Resolve-Path -Path $Path)  | ConvertFrom-Json;
   }
 }
 function Scan-Path {
   param (
 		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
 		[ValidateScript({Test-Path $_})]
-    [String] $Path
+    [String] $Path,
+		[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+		[ValidateScript({Test-Path $_})]
+		[String] $ConfigFile = "./.secrets-scan.json",
+		[Switch] $Quiet
   )
 	begin {
-		if($PSCommandPath -eq $null) {
-			$CommandRootPath = (Split-Path -Parent $MyInvocation.MyCommand.Path);
-		} else {
-			$CommandRootPath = (Split-Path -Parent $PSCommandPath);
-		}
 		$resolvedPath = (Resolve-Path -Path $Path);
-		$rules = Load-Rules -Path (Join-Path -Path $CommandRootPath -ChildPath ".secrets-scan.json");
+		$rules = Load-Rules -Path $ConfigFile;
 		$lrf = (Join-Path -Path $resolvedPath -ChildPath ".secrets-scan.json");
 		if( Test-Path -Path $lrf ) {
 			$localRules = Load-Rules -Path $lrf;
@@ -38,6 +40,7 @@ function Scan-Path {
 		[System.Collections.ArrayList] $warnings = @();
 	}
   process {
+		$exitResult = 0;
 		try {
 			for($i = 0; $i -lt $children.Count; ++$i) {
 	    # $children | foreach {
@@ -76,7 +79,7 @@ function Scan-Path {
 					}
 				}
 			}
-			if($warnings.Count -gt 0) {
+			if($warnings.Count -gt 0 -and !$Quiet.IsPresent) {
 				if($warnings.Count -eq 1) {
 					$vtext = "Violation";
 					$wtext = "was";
@@ -88,22 +91,29 @@ function Scan-Path {
 				$warnings | foreach { "`t[-] $_" | Write-Host; };
 			}
 			if($violations.Count -gt 0) {
-				if($violations.Count -eq 1) {
-					$vtext = "Violation";
-				} else {
-					$vtext = "Violations";
+				if(!$Quiet.IsPresent) {
+					if($violations.Count -eq 1) {
+						$vtext = "Violation";
+					} else {
+						$vtext = "Violations";
+					}
+					"`n[Error]: Found $($violations.Count) $vtext.`n" | Write-Host;
+					$violations | foreach { "`t[x] $_" | Write-Host; };
+					"`nPossible mitigations:`n
+- Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
+- Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.`n`n" | Write-Host;
 				}
-				"`n[Error]: Found $($violations.Count) $vtext.`n" | Write-Host;
-				$violations | foreach { "`t[x] $_" | Write-Host; };
-				"`nPossible mitigations:`n
-	- Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
-	- Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.`n`n" | Write-Host -ForegroundColor DarkYellow;
-				exit $violations.Count;
 			}
 	  } catch {
 			$_ | Write-Error;
-			exit 999;
+			Throw;
 		}
+
+		return @{
+			violations = $violations;
+			warnings = $warnings
+		};
+		exit $violations.Count;
 	}
 }
 
