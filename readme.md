@@ -11,14 +11,18 @@ If you would like to prevent the commit from even happening, you should look at
 [`git-secrets` from _awslabs_](https://github.com/awslabs/git-secrets). This is a git hook bash script to run on your local development environment. They have a very detailed `readme`
 to explain how to configure it.
 
-## Mitigations:
+## Mitigations
 
 -  Mark false positives as allowed by adding exceptions to `.secrets-scan.json`
 - Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.
 
-## Usage:
+## Usage
 
 `PS> ./Secrets-Scan.ps1 -Path C:\code\my-project\`
+
+Rules are defined in `.secrets-scan.json` in the root directory of the `Secrets-Scan.ps1`.
+Additionally, a scanned directory can contain its own `.secrets-scan.json` that will be
+merged with the _root_ configuration. See the *Rules* section below for more information.
 
 ## Violations
 
@@ -42,11 +46,19 @@ Possible mitigations:
 
 ```
 
-## Rules:
+## Rules
 
 Rules are defined in `.secrets-scan.json`. In there, you define the matching `patterns`,
 and the `allowed` exceptions. Both `patterns` and `allowed` sections are arrays of
 `regex` patterns.
+
+### Pattern
+This matches on the text in the file.
+
+### Allowed
+This matches on the file name and the violation match.
+
+`/path/to/file.ext: VIOLATION_MATCH`
 
 Ideally, only _basic_ exceptions should be defined in the main `.secrets-scan.json`,
 other exceptions would be defined in a file, also called `.secrets-scan.json`, within
