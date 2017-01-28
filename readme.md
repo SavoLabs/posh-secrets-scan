@@ -27,8 +27,9 @@ merged with the _root_ configuration. See the *Rules* section below for more inf
 ## Violations
 
 The `exit code` of the script will be `0` for success, or it will be the count
-of the number of violations found. The script will output the full path of the
-files that have violations, and the matching violation.
+of the number of `Violations` found. The script will output the full path of the
+files that have violations, and the matching violation. `Warnings` will not change
+the `exit code`.
 
 ```
 [Warning]: Found 1 Violation that was overridden by exception rules.
