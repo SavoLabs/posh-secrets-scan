@@ -14,7 +14,12 @@ function Scan-Path {
     [String] $Path
   )
 	begin {
-		$rules = Load-Rules -Path "./rules.json";
+		if($PSCommandPath -eq $null) {
+			$CommandRootPath = (Split-Path -Parent $MyInvocation.MyCommand.Path);
+		} else {
+			$CommandRootPath = (Split-Path -Parent $PSCommandPath);
+		}
+		$rules = Load-Rules -Path (Join-Path -Path $CommandRootPath -ChildPath ".secrets-scan.json");
 	}
   process {
 		try {
@@ -57,7 +62,9 @@ function Scan-Path {
 			$violations | Write-Host;
 			if($violations.Count -gt 0) {
 				"`n[Error]: Found $($violations.Count) Violations.`n" | Write-Host -ForegroundColor DarkYellow;
-				"Possible mitigations:`n`t- Mark false positives as allowed adding exceptions to 'rules.json'`n`n" | Write-Host -ForegroundColor DarkYellow;
+				"Possible mitigations:`n
+	- Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
+	- Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.`n`n" | Write-Host -ForegroundColor DarkYellow;
 				exit $violations.Count;
 			}
 	  } catch {
