@@ -148,5 +148,5 @@ function Merge-JSON {
 }
 
 if( ($Execute -eq $null) -or ($Execute -eq $true) ) {
-	Scan-Path -Path $Path;
+	Scan-Path -Path $Path | Out-Null;
 }
