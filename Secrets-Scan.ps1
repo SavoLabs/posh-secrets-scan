@@ -109,19 +109,19 @@ function Scan-Path {
 - Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.`n`n" | Write-Host;
 				}
 			}
-
-			$stopWatch.Stop();
-			$time = $stopWatch.Elapsed;
-			if($filesScannedCount -eq 1) {
-				$filesText = "file";
-			} else {
-				$filesText = "files";
-			}
-			"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
 	  } catch {
 			$_ | Write-Error;
 			Throw;
 		}
+
+		$stopWatch.Stop();
+		$time = $stopWatch.Elapsed;
+		if($filesScannedCount -eq 1) {
+			$filesText = "file";
+		} else {
+			$filesText = "files";
+		}
+		"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
 
 		return @{
 			violations = $violations;
