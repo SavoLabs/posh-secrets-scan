@@ -37,10 +37,11 @@ function Scan-Path {
 			$localRules = Load-Rules -Path $lrf;
 			$rules = Merge-JSON -Base $rules -Ext $localRules;
 		}
-
-		$children = @(Get-ChildItem -Path $resolvedPath -Recurse | where { $_.GetType().Name -eq "FileInfo" });
+		$children = @(Get-ChildItem -Path $resolvedPath -Recurse -Force | where { $_.GetType().Name -eq "FileInfo" });
 		[System.Collections.ArrayList] $violations = @();
 		[System.Collections.ArrayList] $warnings = @();
+		$stopWatch = [Diagnostics.Stopwatch]::StartNew();
+		$filesScannedCount = 0;
 	}
   process {
 		$exitResult = 0;
@@ -49,6 +50,7 @@ function Scan-Path {
 	    # $children | foreach {
 	      $item = $children[$i];
 	      if ( -not $item.PSIsContainer ) {
+					$filesScannedCount++;
 					$content = Get-Content -Path $item.FullName;
 					for($y = 0; $y -lt $rules.patterns.Count; ++$y) {
 	        # $rules.patterns | foreach {
@@ -90,8 +92,8 @@ function Scan-Path {
 					$wtext = "were";
 					$vtext = "Violations";
 				}
-				"`n[Warning]: Found $($warnings.Count) $vtext that $wtext overridden by exception rules.`n" | Write-Host;
-				$warnings | foreach { "`t[-] $_" | Write-Host; };
+				"`n[Warning]: Found $($warnings.Count) $vtext that $wtext overridden by exception rules.`n" | Write-Host -foregroundcolor yellow;
+				$warnings | foreach { "`t[-] $_" | Write-Host -foregroundcolor yellow; };
 			}
 			if($violations.Count -gt 0) {
 				if(!$Quiet.IsPresent) {
@@ -100,8 +102,8 @@ function Scan-Path {
 					} else {
 						$vtext = "Violations";
 					}
-					"`n[Error]: Found $($violations.Count) $vtext.`n" | Write-Host;
-					$violations | foreach { "`t[x] $_" | Write-Host; };
+					"`n[Error]: Found $($violations.Count) $vtext.`n" | Write-Host -foregroundcolor red;
+					$violations | foreach { "`t[x] $_" | Write-Host -foregroundcolor red; };
 					"`nPossible mitigations:`n
 - Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
 - Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.`n`n" | Write-Host;
@@ -111,6 +113,15 @@ function Scan-Path {
 			$_ | Write-Error;
 			Throw;
 		}
+
+		$stopWatch.Stop();
+		$time = $stopWatch.Elapsed;
+		if($filesScannedCount -eq 1) {
+			$filesText = "file";
+		} else {
+			$filesText = "files";
+		}
+		"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
 
 		return @{
 			violations = $violations;

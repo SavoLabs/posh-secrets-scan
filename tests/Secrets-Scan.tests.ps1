@@ -85,6 +85,24 @@ Describe "Scan-Path" {
 			{ Scan-Path -Path "$TestDrive\fake-path" } | Should Throw;
 		}
 	}
+	Context "When Path exists and has hidden folder" {
+		It "Must scan the hidden folders" {
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -Directory "repo";
+			Setup -Directory "repo/.fake";
+			Setup -File "repo/.fake/COMMIT_EDITMSG" -Content "new key: AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT";
+			$hiddenDir = Get-Item -Path "$TestDrive/repo/.fake" -Force;
+			$hiddenDir | foreach {$_.Attributes = "hidden"};
+			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet } | Should Not Throw;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
+			$result | Should Not Be $null;
+			$result.violations | Should Not Be $null;
+			$result.warnings | Should Be $null;
+			$result.violations.Count | Should Be 1;
+			$hiddenDir | select Attributes | Should Match "Hidden";
+			$hiddenDir | select Attributes | Should Match "Directory";
+		}
+	}
 	Context "When Path exists and has overrides file and violations exist" {
 		It "Must processess the files in 'Path' and report violations" {
 			Setup -Directory "repo";
