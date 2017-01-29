@@ -4,7 +4,9 @@ param (
   [String] $Path,
 	[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
 	[ValidateScript({Test-Path $_})]
-	[String] $ConfigFile = "./.secrets-scan.json"
+	[String] $ConfigFile = "./.secrets-scan.json",
+	[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+	[Switch] $Quiet
 )
 function Load-Rules {
   param (
@@ -24,6 +26,7 @@ function Scan-Path {
 		[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
 		[ValidateScript({Test-Path $_})]
 		[String] $ConfigFile = "./.secrets-scan.json",
+		[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
 		[Switch] $Quiet
   )
 	begin {
@@ -148,5 +151,5 @@ function Merge-JSON {
 }
 
 if( ($Execute -eq $null) -or ($Execute -eq $true) ) {
-	Scan-Path -Path $Path | Out-Null;
+	Scan-Path -Path $Path -ConfigFile $ConfigFile -Quiet:$Quiet | Out-Null;
 }
