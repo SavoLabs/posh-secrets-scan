@@ -37,8 +37,7 @@ function Scan-Path {
 			$localRules = Load-Rules -Path $lrf;
 			$rules = Merge-JSON -Base $rules -Ext $localRules;
 		}
-
-		$children = @(Get-ChildItem -Path $resolvedPath -Recurse | where { $_.GetType().Name -eq "FileInfo" });
+		$children = @(Get-ChildItem -Path $resolvedPath -Recurse -Force | where { $_.GetType().Name -eq "FileInfo" });
 		[System.Collections.ArrayList] $violations = @();
 		[System.Collections.ArrayList] $warnings = @();
 	}
