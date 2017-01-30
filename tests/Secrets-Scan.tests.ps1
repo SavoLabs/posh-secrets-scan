@@ -11,10 +11,10 @@ $Execute = $false;
 
 $configPrimary = "{
 	`"patterns`": [
-		`"(?s)(\`"|')?(AWS|aws|Aws)?_?(SECRET|secret|Secret)?_?(ACCESS|access|Access)?_?(KEY|key|Key)(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[A-Za-z0-9/\\+=]{40}(\`"|')?`",
-		`"(?s)(\`"|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\`"|')?`",
-		`"(?s)^-----BEGIN\\sRSA\\sPRIVATE\\sKEY-----`",
-		`"(?s)^-----BEGIN\\sPUBLIC\\sKEY-----`"
+		`"(\`"|')?(AWS|aws|Aws)?_?(SECRET|secret|Secret)?_?(ACCESS|access|Access)?_?(KEY|key|Key)(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[A-Za-z0-9/\\+=]{40}(\`"|')?`",
+		`"(\`"|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\`"|')?`",
+		`"^-----BEGIN\\sRSA\\sPRIVATE\\sKEY-----`",
+		`"^-----BEGIN\\sPUBLIC\\sKEY-----`"
 	],
 	`"allowed`": [
 		`"AKIAIOSFODNN7EXAMPLE`",
@@ -35,9 +35,18 @@ $configTertiary = "{
 	`"allowed`": [
 		`"PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT`",
 		`"RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY`",
-		`"129398745743`"
+		`"129398745743`",
+		`"aws_account_id:129398745743`"
 	]
 }";
+
+$configQuaternary = "{
+	`"patterns`": [
+	],
+	`"allowed`": [
+		`"\\\\repo\\\\my-secrets\\.txt`"
+	]
+}"
 
 $privateKey = "-----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgFO/h8+74h1G6tMEvuv+Rg0SqAx//gZx2H2CJsnfy9Bdr0e0qvZD
@@ -122,12 +131,28 @@ Describe "Scan-Path" {
 			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet } | Should Not Throw;
 			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
 			$result | Should Not Be $null;
-			$result.rules.allowed.Count | Should Be 5;
+			$result.rules.allowed.Count | Should Be 6;
 			$result.violations | Should Be $null;
 			$result.warnings | Should Not Be $null;
-			$result.warnings.Count | Should Be 4;
+			$result.warnings.Count | Should Be 5;
 			$result.violations.Count | Should Be 0;
 
+		}
+	}
+	Context "When an entire file is in the allowed" {
+		It "Must ignore everything in that file" {
+			Setup -Directory "repo";
+			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
+			Setup -File "repo\.secrets-scan.json" -Content $configQuaternary;
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet } | Should Not Throw;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
+			$result | Should Not Be $null;
+			$result.rules.allowed.Count | Should Be 3;
+			$result.violations | Should Be $null;
+			$result.violations.Count | Should Be 0;
+			$result.warnings | Should Not Be $null;
+			$result.warnings.Count | Should Be 4;
 		}
 	}
 	Context "When Path exists and has overrides file and violations exist" {

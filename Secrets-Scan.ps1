@@ -69,27 +69,32 @@ function Scan-Path {
 					# Ignore Folders
 	      }
 	    };
-
-			for($a = 0; $a -lt $rules.allowed.Count; ++$a) {
-			#$rules.allowed | foreach {
+			[System.Collections.ArrayList] $removeIndex = @();
+			for($a = 0; $a -lt $rules.allowed.Count; $a++) {
 				$allowed = $rules.allowed[$a];
-				for($x = 0; $x -lt $violations.Count; ++$x) {
+				for($x = $violations.Count; $x -ge 0; $x--) {
 					$v = $violations[$x];
 					$v | Select-String -Pattern $allowed -AllMatches | foreach { $_.Matches } | foreach {
 						$match = $_;
 						$m = $match.Groups[0].Value;
-						#"v: $v" | write-warning;
-						$result = "$($item.FullName): $($match)";
 						$vidx = $violations.IndexOf($v);
 						if($vidx -ge 0) {
-							$violations.RemoveAt($vidx) | Out-Null;
+							$riidx = $removeIndex.IndexOf($vidx);
+							if(-not $removeIndex.Contains($vidx)) {
+								$removeIndex.Add($vidx);
+							}
 						}
-						if($warnings -notcontains $result) {
-							$warnings.Add($result) | Out-Null;
+						if($warnings -notcontains $v) {
+							$warnings.Add($v) | Out-Null;
 						}
 					}
 				}
 			}
+			$removeIndex.sort();
+			$removeIndex.reverse();
+			$removeIndex | foreach {
+				 $violations.RemoveAt($_) | Out-Null;
+			 }
 
 			if($warnings.Count -gt 0 -and !$Quiet.IsPresent) {
 				if($warnings.Count -eq 1) {
