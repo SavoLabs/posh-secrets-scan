@@ -56,7 +56,7 @@ function Scan-Path {
 	        # $rules.patterns | foreach {
 						$pattern = $rules.patterns[$y];
 	          $content | Select-String -Pattern $pattern -AllMatches | foreach { $_.Matches; } | foreach {
-							$match = $_
+							$match = $_;
 							$m = $match.Groups[0].Value;
 	            $result = "$($item.FullName): $($match)";
 							if ( $violations.IndexOf($result) -ge 0 ) {
@@ -69,14 +69,20 @@ function Scan-Path {
 					# Ignore Folders
 	      }
 	    };
-			for($x = 0; $x -lt $violations.Count; ++$x) {
-				$v = $violations[$x];
-				$rules.allowed | foreach {
-					$allowed = $_;
-					if($v -match $allowed) {
+			[System.Collections.ArrayList] $removeIndex = @();
+			for($a = 0; $a -lt $rules.allowed.Count; $a++) {
+				$allowed = $rules.allowed[$a];
+				for($x = $violations.Count; $x -ge 0; $x--) {
+					$v = $violations[$x];
+					$v | Select-String -Pattern $allowed -AllMatches | foreach { $_.Matches } | foreach {
+						$match = $_;
+						$m = $match.Groups[0].Value;
 						$vidx = $violations.IndexOf($v);
 						if($vidx -ge 0) {
-							$violations.Remove($v) | Out-Null;
+							$riidx = $removeIndex.IndexOf($vidx);
+							if(-not $removeIndex.Contains($vidx)) {
+								$removeIndex.Add($vidx);
+							}
 						}
 						if($warnings -notcontains $v) {
 							$warnings.Add($v) | Out-Null;
@@ -84,6 +90,12 @@ function Scan-Path {
 					}
 				}
 			}
+			$removeIndex.sort();
+			$removeIndex.reverse();
+			$removeIndex | foreach {
+				 $violations.RemoveAt($_) | Out-Null;
+			 }
+
 			if($warnings.Count -gt 0 -and !$Quiet.IsPresent) {
 				if($warnings.Count -eq 1) {
 					$vtext = "Violation";
@@ -121,11 +133,14 @@ function Scan-Path {
 		} else {
 			$filesText = "files";
 		}
-		"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
 
+		if(!$Quiet.IsPresent) {
+			"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
+		}
 		return @{
+			rules = $rules;
 			violations = $violations;
-			warnings = $warnings
+			warnings = $warnings;
 		};
 
 		exit $violations.Count;
