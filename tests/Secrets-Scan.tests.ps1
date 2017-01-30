@@ -29,6 +29,16 @@ $configSecondary = "{
 	]
 }";
 
+$configTertiary = "{
+	`"patterns`": [
+	],
+	`"allowed`": [
+		`"PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT`",
+		`"RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY`",
+		`"129398745743`"
+	]
+}";
+
 $privateKey = "-----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgFO/h8+74h1G6tMEvuv+Rg0SqAx//gZx2H2CJsnfy9Bdr0e0qvZD
 kE3jJOwIaVy5jxzzuVQyNgZd5t+0jPGh374SjoZopBdd+IYwYdcfeauPds1IyJYa
@@ -103,6 +113,23 @@ Describe "Scan-Path" {
 			$hiddenDir | select Attributes | Should Match "Directory";
 		}
 	}
+	Context "When a file has multiple violations that are excluded" {
+		It "Must report all of them as warnings" {
+			Setup -Directory "repo";
+			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
+			Setup -File "repo\.secrets-scan.json" -Content $configTertiary;
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet } | Should Not Throw;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
+			$result | Should Not Be $null;
+			$result.rules.allowed.Count | Should Be 5;
+			$result.violations | Should Be $null;
+			$result.warnings | Should Not Be $null;
+			$result.warnings.Count | Should Be 4;
+			$result.violations.Count | Should Be 0;
+
+		}
+	}
 	Context "When Path exists and has overrides file and violations exist" {
 		It "Must processess the files in 'Path' and report violations" {
 			Setup -Directory "repo";
@@ -148,8 +175,10 @@ Describe "Merge-JSON" {
 			$results = Merge-JSON -Base $primary -Ext $secondary;
 			$results | Should Not Be $null;
 			$results.patterns | Should Not Be $null;
+			$results.patterns.Count | Should Not Be 0;
 			$results.patterns.Count | Should Be ($expectedPrimary.patterns.Count + $expectedSecondary.patterns.Count);
 			$results.allowed | Should Not Be $null;
+			$results.allowed.Count | Should Not Be 0;
 			$results.allowed.Count | Should Be ($expectedPrimary.allowed.Count + $expectedSecondary.allowed.Count);
 		}
 	}

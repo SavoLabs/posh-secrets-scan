@@ -56,7 +56,7 @@ function Scan-Path {
 	        # $rules.patterns | foreach {
 						$pattern = $rules.patterns[$y];
 	          $content | Select-String -Pattern $pattern -AllMatches | foreach { $_.Matches; } | foreach {
-							$match = $_
+							$match = $_;
 							$m = $match.Groups[0].Value;
 	            $result = "$($item.FullName): $($match)";
 							if ( $violations.IndexOf($result) -ge 0 ) {
@@ -69,21 +69,28 @@ function Scan-Path {
 					# Ignore Folders
 	      }
 	    };
-			for($x = 0; $x -lt $violations.Count; ++$x) {
-				$v = $violations[$x];
-				$rules.allowed | foreach {
-					$allowed = $_;
-					if($v -match $allowed) {
+
+			for($a = 0; $a -lt $rules.allowed.Count; ++$a) {
+			#$rules.allowed | foreach {
+				$allowed = $rules.allowed[$a];
+				for($x = 0; $x -lt $violations.Count; ++$x) {
+					$v = $violations[$x];
+					$v | Select-String -Pattern $allowed -AllMatches | foreach { $_.Matches } | foreach {
+						$match = $_;
+						$m = $match.Groups[0].Value;
+						#"v: $v" | write-warning;
+						$result = "$($item.FullName): $($match)";
 						$vidx = $violations.IndexOf($v);
 						if($vidx -ge 0) {
-							$violations.Remove($v) | Out-Null;
+							$violations.RemoveAt($vidx) | Out-Null;
 						}
-						if($warnings -notcontains $v) {
-							$warnings.Add($v) | Out-Null;
+						if($warnings -notcontains $result) {
+							$warnings.Add($result) | Out-Null;
 						}
 					}
 				}
 			}
+
 			if($warnings.Count -gt 0 -and !$Quiet.IsPresent) {
 				if($warnings.Count -eq 1) {
 					$vtext = "Violation";
@@ -121,11 +128,14 @@ function Scan-Path {
 		} else {
 			$filesText = "files";
 		}
-		"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
 
+		if(!$Quiet.IsPresent) {
+			"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
+		}
 		return @{
+			rules = $rules;
 			violations = $violations;
-			warnings = $warnings
+			warnings = $warnings;
 		};
 
 		exit $violations.Count;
