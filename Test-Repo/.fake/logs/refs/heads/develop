@@ -1,5 +1,0 @@
-0000000000000000000000000000000000000000 4a8fe201d5de695c32fdb25204e0546dffb7c83d joe-user <joe-user@joes-personal-email.com> 1485581063 -0600	branch: Created from master
-4a8fe201d5de695c32fdb25204e0546dffb7c83d 874b8da891a82b5ebee2a03730900f60b0984ac4 joe-user <joe-user@joes-personal-email.com> 1485589370 -0600	commit: initial commit
-93e406f7912a3c9994911a43f1d7e228857644f8 62b1d6ea051d6a595d22f34f16939cf84f65f453 joe-user <joe-user@joes-personal-email.com> 1485708914 -0600	pull: Fast-forward
-62b1d6ea051d6a595d22f34f16939cf84f65f453 18dd111132cf3332ce00e7b0e30478427d291d40 joe-user <joe-user@joes-personal-email.com> 1485710004 -0600	commit: change AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT
-18dd111132cf3332ce00e7b0e30478427d291d40 62b1d6ea051d6a595d22f34f16939cf84f65f453 joe-user <joe-user@joes-personal-email.com> 1485710095 -0600	reset: moving to HEAD~1
