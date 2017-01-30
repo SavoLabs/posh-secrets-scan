@@ -111,7 +111,7 @@ function Scan-Path {
 			}
 	  } catch {
 			$_ | Write-Error;
-			Throw;
+			exit 999;
 		}
 
 		$stopWatch.Stop();
@@ -127,6 +127,7 @@ function Scan-Path {
 			violations = $violations;
 			warnings = $warnings
 		};
+
 		exit $violations.Count;
 	}
 }
@@ -162,5 +163,6 @@ function Merge-JSON {
 }
 
 if( ($Execute -eq $null) -or ($Execute -eq $true) ) {
-	Scan-Path -Path $Path -ConfigFile $ConfigFile -Quiet:$Quiet | Out-Null;
+	$results = Scan-Path -Path $Path -ConfigFile $ConfigFile -Quiet:$Quiet;
+	exit $results.violations.Count;
 }
