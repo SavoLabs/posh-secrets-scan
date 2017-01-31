@@ -1,13 +1,18 @@
 param (
-	[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+	[Alias("P")]
+	[Parameter(Mandatory=$true,ValueFromPipeline=$true, ParameterSetName="Scan")]
 	[ValidateScript({Test-Path $_})]
   [String] $Path,
-	[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+	[Alias("C")]
+	[Parameter(Mandatory=$false,ValueFromPipeline=$true, ParameterSetName="Scan")]
 	[ValidateScript({Test-Path $_})]
 	[String] $ConfigFile = "./.secrets-scan.json",
-	[Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+	[Alias("Q")]
+	[Parameter(Mandatory=$false,ValueFromPipeline=$true, ParameterSetName="Scan")]
 	[Switch] $Quiet
+
 )
+
 function Load-Rules {
   param (
 		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]

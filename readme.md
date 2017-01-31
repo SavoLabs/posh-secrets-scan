@@ -11,6 +11,32 @@ If you would like to prevent the commit from even happening, you should look at 
 - Mark false positives as allowed by adding exceptions to `.secrets-scan.json`
 - Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.
 
+### Install
+
+The way we run this scan is on a Jenkins Windows Build Agent. On the build agent, we
+have a specific directory to scripts. We have an environment variable `ENV:SCRIPTS_PATH`
+defined that contains that path.
+
+Here is a sample build configuration for a job to scan a repository:
+
+- The first block makes sure the build agent has the latest version of the script installed.
+ - It does this by downloading a script that exists in this repository and executes it.
+ - The downloaded script will download the necessary files to the specified `-Path` argument, which is set to the `ENV:SCRIPTS_PATH` in the example below.
+- The second block executes the scan and returns based on the result of the scan.
+
+Windows Powershell:
+```
+$scriptsPath = "$ENV:SCRIPTS_PATH";
+$initScript = (New-Object System.Net.WebClient).DownloadString("https://raw.githubusercontent.com/SavoLabs/posh-secrets-scan/master/Secret-Scan-Initialize.ps1");
+& $([scriptblock]::Create($initScript)) -Path $scriptsPath;
+```
+Windows Powershell:
+```
+(& powershell.exe -File "$ENV:SCRIPTS_PATH\secrets-scan.ps1" -Path "$ENV:WORKSPACE" -ConfigFile "$ENV:SCRIPTS_PATH\.secrets-scan.json");
+exit $LASTEXITCODE;
+```
+
+
 ### Usage
 
 `PS> ./Secrets-Scan.ps1 -Path "C:\code\my-project\"`

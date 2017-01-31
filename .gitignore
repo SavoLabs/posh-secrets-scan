@@ -1,2 +1,7 @@
 *.results.xml
 [bB]in/
+
+.env
+*.env
+
+.init-test.ps1
