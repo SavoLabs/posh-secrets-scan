@@ -183,11 +183,6 @@ function Merge-JSON {
 }
 
 if( ($Execute -eq $null) -or ($Execute -eq $true) ) {
-	switch ($PSCmdlet.ParameterSetName) {
-		"Scan" {
-			Initialize-SecretScan;
-			$results = Scan-Path -Path $Path -ConfigFile $ConfigFile -Quiet:$Quiet;
-			exit $results.violations.Count;
-		};
-	}
+	$results = Scan-Path -Path $Path -ConfigFile $ConfigFile -Quiet:$Quiet;
+	exit $results.violations.Count;
 }
