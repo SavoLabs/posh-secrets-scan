@@ -22,7 +22,7 @@ function Initialize-SecretScan {
 		try {
 			Invoke-WebRequest -Uri $configFileUrl -OutFile $configFileOutput;
 			Invoke-WebRequest -Uri $mainFileUrl -OutFile $mainFileOutput;
-		} catch (exception) {
+		} catch {
 			$_ | Write-Warning;
 		}
 	}
