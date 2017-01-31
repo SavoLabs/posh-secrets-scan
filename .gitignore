@@ -1,2 +1,5 @@
 *.results.xml
 [bB]in/
+
+.env
+*.env
