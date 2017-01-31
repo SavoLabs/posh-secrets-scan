@@ -19,8 +19,12 @@ function Initialize-SecretScan {
 		$configFileOutput = Join-Path -Path $resolvedPath -ChildPath ".secrets-scan.json";
 	}
 	process {
-		Invoke-WebRequest -Uri $configFileUrl -OutFile $configFileOutput;
-		Invoke-WebRequest -Uri $mainFileUrl -OutFile $mainFileOutput;
+		try {
+			Invoke-WebRequest -Uri $configFileUrl -OutFile $configFileOutput;
+			Invoke-WebRequest -Uri $mainFileUrl -OutFile $mainFileOutput;
+		} catch {
+			$_ | Write-Warning;
+		}
 	}
 }
 
