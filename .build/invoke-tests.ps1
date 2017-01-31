@@ -4,6 +4,8 @@ if($PSCommandPath -eq $null) {
 	$CommandRootPath = (Split-Path -Parent $PSCommandPath);
 }
 
+$isCI = $ENV:CI -eq 'True';
+
 if(-not (Get-Module -ListAvailable -Name "pester")) {
 	choco install pester -y | Write-Host;
 }
@@ -29,6 +31,6 @@ $tests = (Get-ChildItem -Path "$testsDir\*.Tests.ps1" | % { $_.FullName });
 $coverageFiles = (Get-ChildItem -Path "$psModuleFiles") | where { $_.Name -inotmatch "\.tests\.ps1$" -and $_.Name -inotmatch "\.psd1$" } | % { $_.FullName };
 $resultsOutput = (Join-Path -Path $outDir -ChildPath "secrets-scan.results.xml");
 
-Invoke-Pester -Script $tests -OutputFormat NUnitXml -OutputFile $resultsOutput -CodeCoverage $coverageFiles -Strict;
+Invoke-Pester -Script $tests -OutputFormat NUnitXml -OutputFile $resultsOutput -CodeCoverage $coverageFiles -Strict -EnableExit:isCI;
 
 Set-Location -Path $cdir | Out-Null;
