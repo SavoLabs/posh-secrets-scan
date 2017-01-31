@@ -11,10 +11,9 @@ $Execute = $false;
 
 $configPrimary = "{
 	`"patterns`": [
-		`"(\`"|')?(AWS|aws|Aws)?_?(SECRET|secret|Secret)?_?(ACCESS|access|Access)?_?(KEY|key|Key)(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[A-Za-z0-9/\\+=]{40}(\`"|')?`",
-		`"(\`"|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\`"|')?`",
-		`"^-----BEGIN\\sRSA\\sPRIVATE\\sKEY-----`",
-		`"^-----BEGIN\\sPUBLIC\\sKEY-----`"
+		`"(?si)(\`"|')?(aws)?_?(secret)?_?(access)?_?(key)(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[a-z0-9/\\+=]{40}(\`"|')?`",
+		`"(?si)(\`"|')?(aws)?_?(account)_?(id)?(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\`"|')?`",
+		`"(?si)-----begin\\s[dr]sa\\sprivate\\skey-----`"
 	],
 	`"allowed`": [
 		`"AKIAIOSFODNN7EXAMPLE`",
@@ -168,7 +167,7 @@ Describe "Scan-Path" {
 			$result | Should Not Be $null;
 			$result.violations | Should Not Be $null;
 			$result.warnings | Should Not Be $null;
-			$result.warnings.Count | Should Be 2;
+			$result.warnings.Count | Should Be 1;
 			$result.violations.Count | Should Be 4;
 		}
 	}
@@ -185,7 +184,7 @@ Describe "Scan-Path" {
 			$result.violations | Should Not Be $null;
 			$result.warnings | Should Not Be $null;
 			$result.warnings.Count | Should Be 1;
-			$result.violations.Count | Should Be 5;
+			$result.violations.Count | Should Be 4;
 		}
 	}
 }
