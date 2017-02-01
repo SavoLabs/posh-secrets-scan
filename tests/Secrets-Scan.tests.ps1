@@ -16,7 +16,7 @@ $configPrimary = "{
 		`"(?si)(\`"|')?(aws)?_?(secret)?_?(access)?_?(key)(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[a-z0-9/\\+=]{40}(\`"|')?`",
 		`"(?si)(\`"|')?(aws)?_?(account)_?(id)?(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\`"|')?`",
 		`"(?si)-{5}begin\\s[rd]sa\\sprivate\\skey-{5}`",
-		`"\\[?(?:\`"|'|:)?(password)(?:\`"|'|:)?\\]?\\s*(:|=>|=)\\s*(?:\`"|')?([\\w|\\s|\\d|\\-*\/~``!@\\#\\$%\\^&\\(\\)_\\<\\>]+)(?:\`"|'|)?`"
+		`"\\[?(?:\`"|'|:)?(p(?:ass)?w(?:or)?d)(?:\`"|'|:)?\\]?\\s*(:|=>|=)\\s*(?:\`"|')?([\\w\\s\\d\\-*\/~``!@\\#\\$%\\^&\\(\\)_\\<\\>;\\.,\\?\\$\`"']+)(?:\`"|'|)?`"
 	],
 	`"allowed`": [
 		`"AKIAIOSFODNN7EXAMPLE`",
@@ -92,6 +92,10 @@ key=s35RpQlY7K1Pjg8mby2ltHVabtBU9tsyB9QGw1do
 password=Passsw0rd
 os['windows']['password'] => 'Passw0rd'
 os[:windows][:password] => 'Passw0rd'
+os[windows:][password:] => 'Passw0rd'
+";
+
+$secretsFileSingle = "
 os[windows:][password:] => 'Passw0rd'
 ";
 
@@ -260,6 +264,84 @@ Describe "Scan-Path" {
 			Setup -File ".secrets-scan.json" -Content $configPrimary;
 			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
 			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Q } | Should Not Throw;
+		}
+	}
+
+	Context "When has one violation" {
+		It "Must use singular string for text" {
+			$TestHostContent = "";
+			Mock Write-Host {
+				return $Object;
+			};
+			Setup -Directory "repo";
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -File "repo\my-secrets.txt" -Content $secretsFileSingle;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json";
+			$result | Should Not Be $null;
+			$result.violations | Should Not Be $null;
+			$result.warnings | Should Be $null;
+			$result.warnings.Count | Should Be 0;
+			$result.violations.Count | Should Be 1;
+			$result -join " " | Should Match "Found 1 Violation";
+		}
+	}
+
+	Context "When has one warning" {
+		It "Must use singular string for text" {
+			$TestHostContent = "";
+			Mock Write-Host {
+				return $Object;
+			};
+			Setup -Directory "repo";
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -File "repo\.secrets-scan.json" -Content $configSecondary;
+			Setup -File "repo\my-secrets.txt" -Content $secretsFileSingle;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json";
+			$result | Should Not Be $null;
+			$result.violations | Should Be $null;
+			$result.warnings | Should Not Be $null;
+			$result.warnings.Count | Should Be 1;
+			$result.violations.Count | Should Be 0;
+			$result -join " " | Should Match "Found 1 Violation that was overridden";
+		}
+	}
+
+	Context "When has multiple violations" {
+		It "Must use plural string for text" {
+			$TestHostContent = "";
+			Mock Write-Host {
+				return $Object;
+			};
+			Setup -Directory "repo";
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json";
+			$result | Should Not Be $null;
+			$result.violations | Should Not Be $null;
+			$result.warnings | Should Not Be $null;
+			$result.warnings.Count | Should Be 1;
+			$result.violations.Count | Should Be 8;
+			$result -join " " | Should Match "Found 8 Violations";
+		}
+	}
+
+	Context "When has multiple warnings" {
+		It "Must use plural string for text" {
+			$TestHostContent = "";
+			Mock Write-Host {
+				return $Object;
+			};
+			Setup -Directory "repo";
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -File "repo\.secrets-scan.json" -Content $configSecondary;
+			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json";
+			$result | Should Not Be $null;
+			$result.violations | Should Be $null;
+			$result.warnings | Should Not Be $null;
+			$result.warnings.Count | Should Be 9;
+			$result.violations.Count | Should Be 0;
+			$result -join " " | Should Match "Found 9 Violations that were overridden";
 		}
 	}
 }
