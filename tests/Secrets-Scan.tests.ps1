@@ -21,11 +21,12 @@ $configPrimary = "{
 		`"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`"
 	]
 }";
+
 $configSecondary = "{
 	`"patterns`": [
 	],
 	`"allowed`": [
-		`"(?s)-----BEGIN\\sPUBLIC\\sKEY-----$`"
+		`"\\\\repo\\\\my-secrets\\.txt`"
 	]
 }";
 
@@ -43,10 +44,9 @@ $configQuaternary = "{
 	`"patterns`": [
 	],
 	`"allowed`": [
-		`"\\\\repo\\\\my-secrets\\.txt`"
+		`"\\\\repo\\\\readme.md`"
 	]
-}"
-
+}";
 $privateKey = "-----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgFO/h8+74h1G6tMEvuv+Rg0SqAx//gZx2H2CJsnfy9Bdr0e0qvZD
 kE3jJOwIaVy5jxzzuVQyNgZd5t+0jPGh374SjoZopBdd+IYwYdcfeauPds1IyJYa
@@ -62,15 +62,26 @@ Vg28slV5F2pNOr+GyQlwmiB5o6VbSw2ME49/eStSlIgrFdtydoVnvWwRKECagqDO
 gjEoEu6XoNBXjTSRT1kCQEmt0GiKee3WfUJIrKhuFaCe9ihta4rfhjPeBioJyzqa
 dBgY6tF4GMfg9bTPgRmg9KSoAHxG7niXwmnJunbrvHI=
 -----END RSA PRIVATE KEY-----";
-$publicKey = "-----BEGIN PUBLIC KEY-----
-MIIBITANBgkqhkiG9w0BAQEFAAOCAQ4AMIIBCQKCAQBVSJi+7w5nALWcwMQn3OW1
-sxFyX6sKHJmBT6uWgsqdq7OtWSh8Yo/+42eVgkJ9NXa2ayY8/pOF26BtK2A2yNuG
-rnHZ1nB3/IiJAzOx2p0sMd6Q0T5yk0rPSx6PvsmWJnK12l2HWbERKw1IVvPtm8pN
-PhsiDsweZpcmpvSqiPpdk/AqhCkt88WA+1/0YY9mlY92H63MRX3w+FPwgkC/dPzX
-a9yTFie4sqLQ88YA2s81VPhPgaG7pallrM8hPVNhNgkMmOKPA6wffkjW+tD5q97V
-1/njNSfrSW++S972KjNl9ZkiXe2yAJ9WD6vOhIGvFbIl7jnkziIfbKhRegDK9QzL
-AgMBAAE=
------END PUBLIC KEY-----";
+$fileWithPrivateKey = "
+	pem: `"$privateKey`"
+";
+$readme = "``````
+[Warning]: Found 1 Violation that was overridden by exception rules.
+    [-] C:\code\my-project\super-secret-key.txt: AWS_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+[Error]: Found 5 Violations.
+    [x] C:\code\my-project\super-secret-key.txt: AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT
+    [x] C:\code\my-project\super-secret-key.txt: AWS_ACCESS_KEY=RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY
+    [x] C:\code\my-project\Subfolder\more-secrets.txt: aws_account_id:129398745743
+    [x] C:\code\my-project\Subfolder\my-key.pem: -----BEGIN RSA PRIVATE KEY-----
+    [x] C:\code\my-project\Subfolder\my-key.pub: -----BEGIN PUBLIC KEY-----
+
+
+Possible mitigations:
+    - Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
+    - Revoke the Secret that was identified. The secret is no longer secure as it
+        now exists in the commit history, even if removed from code.
+``````"
 $secretsFile = "aws_account_id:129398745743
 AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT
 AWS_ACCESS_KEY=RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY
@@ -104,6 +115,7 @@ Describe "Load-Rules" {
 }
 
 Describe "Scan-Path" {
+
 	Context "When Path does not exist" {
 		It "Must throw exception" {
 			{ Scan-Path -Path "$TestDrive\fake-path" } | Should Throw;
@@ -148,7 +160,7 @@ Describe "Scan-Path" {
 		It "Must ignore everything in that file" {
 			Setup -Directory "repo";
 			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
-			Setup -File "repo\.secrets-scan.json" -Content $configQuaternary;
+			Setup -File "repo\.secrets-scan.json" -Content $configSecondary;
 			Setup -File ".secrets-scan.json" -Content $configPrimary;
 			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet } | Should Not Throw;
 			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
@@ -160,13 +172,59 @@ Describe "Scan-Path" {
 			$result.warnings.Count | Should Be 9;
 		}
 	}
+	Context "When file contains private key and other content" {
+		It "Must report the violation" {
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -Directory "repo";
+			Setup -File "repo\my-secrets.txt" -Content $fileWithPrivateKey;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
+			$result | Should Not Be $null;
+			$result.rules.allowed.Count | Should Be 2;
+			$result.violations | Should Not Be $null;
+			$result.warnings | Should Be $null;
+			$result.warnings.Count | Should Be 0;
+			$result.violations.Count | Should Be 1;
+
+		}
+	}
+	Context "When file contains private key but is excluded" {
+		It "Must not report the violation" {
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -Directory "repo";
+			Setup -File "repo\.secrets-scan.json" -Content $configSecondary;
+			Setup -File "repo\my-secrets.txt" -Content $fileWithPrivateKey;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet:$false;
+			$result | Should Not Be $null;
+			$result.rules.allowed.Count | Should Be 3;
+			$result.violations | Should Be $null;
+			$result.warnings | Should Not Be $null;
+			$result.warnings.Count | Should Be 1;
+			$result.violations.Count | Should Be 0;
+		}
+	}
+
+	Context "When scanning the readme and it is excluded" {
+		It "Must not report violations" {
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -Directory "repo";
+			Setup -File "repo\.secrets-scan.json" -Content $configQuaternary;
+			Setup -File "repo\readme.md" -Content $readme;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet:$false;
+			$result | Should Not Be $null;
+			$result.rules.allowed.Count | Should Be 3;
+			$result.violations | Should Be $null;
+			$result.warnings | Should Not Be $null;
+			$result.warnings.Count | Should Be 5;
+			$result.violations.Count | Should Be 0;
+
+		}
+	}
+
 	Context "When Path exists and has overrides file and violations exist" {
 		It "Must processess the files in 'Path' and report violations" {
 			Setup -Directory "repo";
 			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
 			Setup -File "repo\my-key.pem" -Content $privateKey;
-			Setup -File "repo\my-key.pub" -Content $publicKey;
-			Setup -File "repo\.secrets-scan.json" -Content $configSecondary;
 			Setup -File ".secrets-scan.json" -Content $configPrimary;
 			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet } | Should Not Throw;
 			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
