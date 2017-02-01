@@ -195,7 +195,7 @@ Describe "Scan-Path" {
 			Setup -Directory "repo";
 			Setup -File "repo\.secrets-scan.json" -Content $configSecondary;
 			Setup -File "repo\my-secrets.txt" -Content $fileWithPrivateKey;
-			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet:$false;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
 			$result | Should Not Be $null;
 			$result.rules.allowed.Count | Should Be 3;
 			$result.violations | Should Be $null;
@@ -211,7 +211,7 @@ Describe "Scan-Path" {
 			Setup -Directory "repo";
 			Setup -File "repo\.secrets-scan.json" -Content $configQuaternary;
 			Setup -File "repo\readme.md" -Content $readme;
-			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet:$false;
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
 			$result | Should Not Be $null;
 			$result.rules.allowed.Count | Should Be 3;
 			$result.violations | Should Be $null;
