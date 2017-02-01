@@ -259,7 +259,7 @@ Describe "Scan-Path" {
 			Setup -Directory "repo";
 			Setup -File ".secrets-scan.json" -Content $configPrimary;
 			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
-			{ Scan-Path -P "$TestDrive\repo" -C "$TestDrive\.secrets-scan.json" -Q } | Should Not Throw;
+			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Q } | Should Not Throw;
 		}
 	}
 }

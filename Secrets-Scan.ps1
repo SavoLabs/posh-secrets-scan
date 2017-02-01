@@ -1,9 +1,7 @@
 param (
-	[Alias("P")]
 	[Parameter(Mandatory=$true,ValueFromPipeline=$true, ParameterSetName="Scan")]
 	[ValidateScript({Test-Path $_})]
   [String] $Path,
-	[Alias("C")]
 	[Parameter(Mandatory=$false,ValueFromPipeline=$true, ParameterSetName="Scan")]
 	[ValidateScript({Test-Path $_})]
 	[String] $ConfigFile = "./.secrets-scan.json",
