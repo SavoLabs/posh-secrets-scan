@@ -4,7 +4,7 @@ if($PSCommandPath -eq $null) {
 	$CommandRootPath = (Split-Path -Parent $PSCommandPath);
 }
 
-$isCI = $ENV:CI -ne 'True';
+$isCI = $ENV:CI -cmatch '[Tt]rue';
 
 if(-not (Get-Module -ListAvailable -Name "pester")) {
 	choco install pester -y | Write-Host;

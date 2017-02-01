@@ -13,7 +13,8 @@ $configPrimary = "{
 	`"patterns`": [
 		`"(?si)(\`"|')?(aws)?_?(secret)?_?(access)?_?(key)(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[a-z0-9/\\+=]{40}(\`"|')?`",
 		`"(?si)(\`"|')?(aws)?_?(account)_?(id)?(\`"|')?\\s*(:|=>|=)\\s*(\`"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\`"|')?`",
-		`"(?si)-----begin\\s[dr]sa\\sprivate\\skey-----`"
+		`"(?si)-{5}begin\\s[rd]sa\\sprivate\\skey-{5}`",
+		`"\\[?(?:\`"|'|:)?(password)(?:\`"|'|:)?\\]?\\s*(:|=>|=)\\s*(?:\`"|')?([\\w|\\s|\\d|\\-*\/~``!@\\#\\$%\\^&\\(\\)_\\<\\>]+)(?:\`"|'|)?`"
 	],
 	`"allowed`": [
 		`"AKIAIOSFODNN7EXAMPLE`",
@@ -34,7 +35,6 @@ $configTertiary = "{
 	`"allowed`": [
 		`"PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT`",
 		`"RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY`",
-		`"129398745743`",
 		`"aws_account_id:129398745743`"
 	]
 }";
@@ -74,7 +74,13 @@ AgMBAAE=
 $secretsFile = "aws_account_id:129398745743
 AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT
 AWS_ACCESS_KEY=RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY
-AWS_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
+AWS_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+key=s35RpQlY7K1Pjg8mby2ltHVabtBU9tsyB9QGw1do
+password=Passsw0rd
+os['windows']['password'] => 'Passw0rd'
+os[:windows][:password] => 'Passw0rd'
+os[windows:][password:] => 'Passw0rd'
+";
 
 Describe "Load-Rules" {
 
@@ -130,11 +136,11 @@ Describe "Scan-Path" {
 			{ Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet } | Should Not Throw;
 			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
 			$result | Should Not Be $null;
-			$result.rules.allowed.Count | Should Be 6;
-			$result.violations | Should Be $null;
+			$result.rules.allowed.Count | Should Be 5;
+			$result.violations | Should Not Be $null;
 			$result.warnings | Should Not Be $null;
 			$result.warnings.Count | Should Be 5;
-			$result.violations.Count | Should Be 0;
+			$result.violations.Count | Should Be 5;
 
 		}
 	}
@@ -151,7 +157,7 @@ Describe "Scan-Path" {
 			$result.violations | Should Be $null;
 			$result.violations.Count | Should Be 0;
 			$result.warnings | Should Not Be $null;
-			$result.warnings.Count | Should Be 4;
+			$result.warnings.Count | Should Be 9;
 		}
 	}
 	Context "When Path exists and has overrides file and violations exist" {
@@ -168,7 +174,7 @@ Describe "Scan-Path" {
 			$result.violations | Should Not Be $null;
 			$result.warnings | Should Not Be $null;
 			$result.warnings.Count | Should Be 1;
-			$result.violations.Count | Should Be 4;
+			$result.violations.Count | Should Be 9;
 		}
 	}
 	Context "When Path exists and violations exist" {
@@ -184,7 +190,16 @@ Describe "Scan-Path" {
 			$result.violations | Should Not Be $null;
 			$result.warnings | Should Not Be $null;
 			$result.warnings.Count | Should Be 1;
-			$result.violations.Count | Should Be 4;
+			$result.violations.Count | Should Be 9;
+		}
+	}
+
+	Context "When using the short names for the arguments" {
+		It "Must not throw an exception" {
+			Setup -Directory "repo";
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -File "repo\my-secrets.txt" -Content $secretsFile;
+			{ Scan-Path -P "$TestDrive\repo" -C "$TestDrive\.secrets-scan.json" -Q } | Should Not Throw;
 		}
 	}
 }
