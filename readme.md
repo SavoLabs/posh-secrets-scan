@@ -6,6 +6,10 @@ This will not prevent someone from checking them in to a `git` repository. The p
 
 If you would like to prevent the commit from even happening, you should look at [`git-secrets` from _awslabs_](https://github.com/awslabs/git-secrets). This is a git hook bash script to run on your local development environment. They have a very detailed `readme` to explain how to configure it.
 
+```NOTE: All the password, access keys, tokens, etc. located within this repository are made up from a random string generation```
+
+
+
 ### Mitigations
 
 - Mark false positives as allowed by adding exceptions to `.secrets-scan.json`

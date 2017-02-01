@@ -1,3 +1,5 @@
+#### NOTE: All the password, access keys, tokens, etc. within this file are made up from a random string generation
+
 if($PSCommandPath -eq $null) {
 	$CommandRootPath = (Split-Path -Parent $MyInvocation.MyCommand.Path);
 } else {
