@@ -59,6 +59,17 @@ Example of passing all parameters:
 | ConfigFile | The path to the `Rules` file | ☐ | `String` | `./.secrets-scan.json` |
 | Quiet | If provided, no output will be logged | ☐ | `Switch` | `false` |
 
+### Scanning
+
+Scanning will happen recursivly through the specified `Path`. It will scan all files, including
+files within hidden folders, and hidden files.
+
+Additionally, if `git` is found within the `$ENV:PATH`, an attempt to get commit history logs for
+the last 4 commits, and those diffs will be scanned.
+
+Voilations that are found within the commit history will be identified by having `[Commit]` and
+the commit `SHA Hash`. An example can be found below under [Allowed](#allowed).
+
 ### Violations
 
 The `exit code` of the script will be `0` for success, or it will be the count of the number of `Violations` found. The script will output the full path of the files that have violations, and the matching violation. `Warnings` will not change the `exit code`.
@@ -70,9 +81,9 @@ The `exit code` of the script will be `0` for success, or it will be the count o
 [Error]: Found 5 Violations.
     [x] C:\code\my-project\super-secret-key.txt: AWS_SECRET_KEY=PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT
     [x] C:\code\my-project\super-secret-key.txt: AWS_ACCESS_KEY=RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY
-    [x] C:\code\my-project\Subfolder\more-secrets.txt: aws_account_id:129398745743
+		[x] C:\code\my-project\Subfolder\more-secrets.txt: aws_account_id:129398745743
+		[x] C:\code\my-project\Subfolder\more-secrets.txt: [Commit]cd79426d236bf31f21933e0dd6cb604cb2958fd2: aws_account_id:129398745743
     [x] C:\code\my-project\Subfolder\my-key.pem: -----BEGIN RSA PRIVATE KEY-----
-    [x] C:\code\my-project\Subfolder\my-key.pub: -----BEGIN PUBLIC KEY-----
 
 
 Possible mitigations:
@@ -95,19 +106,25 @@ This matches on the file name and the violation match.
 
 `/path/to/file.ext: VIOLATION_MATCH`
 
+Voilations that are identified within a git commit history will have `[Commit]<COMMIT-SHA>:` in the violation like the following:
+
+`/path/to/file.ext: [Commit]cd79426d236bf31f21933e0dd6cb604cb2958fd2: VIOLATION_MATCH`
+
 Ideally, only _basic_ exceptions should be defined in the main `.secrets-scan.json`, other exceptions would be defined in a file, also called `.secrets-scan.json`, within the root directory of the repository to be scanned. The script will load, and merge, the 2 configurations together.
 
 ```
 {
-    "patterns": [
-        "(?s)(\"|')?(AWS|aws|Aws)?_?(SECRET|secret|Secret)?_?(ACCESS|access|Access)?_?(KEY|key|Key)(\"|')?\\s*(:|=>|=)\\s*(\"|')?[A-Za-z0-9/\\+=]{40}(\"|')?",
-        "(?s)(\"|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?(\"|')?\\s*(:|=>|=)\\s*(\"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\"|')?",
-        "(?s)^-----BEGIN\\sRSA\\sPRIVATE\\sKEY-----",
-        "(?s)^-----BEGIN\\sPUBLIC\\sKEY-----"
-    ],
-    "allowed": [
-        "AKIAIOSFODNN7EXAMPLE",
-        "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-    ]
+	"patterns": [
+		"(?msi)(\"|')?(aws)?_?(secret)?_?(access)?_?(key)(\"|')?\\s*(:|=>|=)\\s*(\"|')?([a-z0-9/\\+=]{40}|[a-z0-9/\\+=]{20})(\"|')?",
+		"(?msi)(?:key\\s*=\\s*)(?:\"|')?((?:aws)?_?(?:secret)?_?(?:access)?_?(?:key))(?:\"|')?\\s*(?:value\\s*=\\s*)(?:\"|')?([a-z0-9/\\+=]{40}|[a-z0-9/\\+=]{20})(?:\"|')?",
+		"(?msi)(\"|')?((?:aws)?_?(?:account)_?(?:id)?)(\"|')?\\s*(:|=>|=)\\s*(\"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\"|')?",
+		"(?msi)(?:key\\s*=\\s*)(?:\"|')?((?:aws)?_?(?:account)_?(?:id)?)(?:\"|')?\\s*(?:value\\s*=\\s*)(?:\"|')?([0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4})(?:\"|')?",
+		"(?msi)-{5}begin\\s[rd]sa\\sprivate\\skey-{5}",
+		"(?msi)\\[?(?:\"|'|:)?(p(?:ass)?w(?:or)?d)(?:\"|'|:)?\\]?\\s*(:|=>|=)\\s*(?:\"|')?([\\w\\s\\d\\-*\/~`!@\\#\\$%\\^&\\(\\)_\\<\\>;\\.,\\?\\$\"']+)(?:\"|'|)?"
+	],
+	"allowed": [
+		"AKIAIOSFODNN7EXAMPLE",
+		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+	]
 }
 ```
