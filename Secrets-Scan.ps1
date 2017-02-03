@@ -66,7 +66,6 @@ function Scan-Path {
 						}
 					};
 					$logContent = (Get-GitLogForFile -Path $item.FullName) | foreach {
-						"logContent: $logContent" | write-warning;
 						$xContent = $_;
 						$commitScannedCount++;
 						(Get-Violations -Rules $rules -Data @{ Content = $xContent.Content; Name = $xContent.Name; }) | foreach {
@@ -206,7 +205,6 @@ function Get-GitLogForFile {
 
 	process {
 		$output = Execute-GitLogCommand -Path $Path;
-		$output | write-warning;
 		[System.Collections.ArrayList]$dataList = @();
 		if($output -ne $null) {
 			$currentSHA = "";
@@ -225,10 +223,9 @@ function Get-GitLogForFile {
 				}
 			}
 		} else {
-			"no output found" | write-warning;
-			return @();
+			return [Array]@();
 		}
-		return $dataList;
+		return [Array]$dataList;
 	}
 }
 

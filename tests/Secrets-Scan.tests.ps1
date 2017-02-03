@@ -208,14 +208,21 @@ Describe "Scan-Path" {
 			Mock Write-Violations {};
 			Mock Test-Path { return $true; } -ParameterFilter { $Path -eq "$TestDrive\$historyFile" };
 			Mock Execute-GitLogCommand {
-				"mock Execute-GitLogCommand" | write-warning;
 				return $gitLog;
 			}
 			Mock Get-Violations {
-				"mock Get-Violations" | write-warning;
 				return [Array]@("$TestDrive\$($historyFile): [Commit]<FAKESHA>: violation 1", "$TestDrive\$($historyFile): [Commit]<FAKESHA>: violation 2");
 			};
 			Mock Get-Command { return $true; };
+			Mock Get-GitLogForFile {
+				return [Array]@({
+					Name= "$TestDrive\$($historyFile): [Commit]<FAKESHA>"
+					Content= "Fake Content That Doesn't Matter"
+				}, {
+					Name= "$TestDrive\$($historyFile): [Commit]<FAKESHA>"
+					Content= "Fake Content That Doesn't Matter"
+				});
+			}
 
 			Setup -Directory "repo";
 			Setup -File ".secrets-scan.json" -Content $configPrimary;
@@ -227,9 +234,10 @@ Describe "Scan-Path" {
 			$result.violations.Count | Should Be 2;
 			Assert-MockCalled Get-Command -Exactly -Times 0;
 			Assert-MockCalled Write-Violations -Exactly -Times 1;
-			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 1;
-			Assert-MockCalled Test-Path -Exactly -Times 2;
+			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 0;
+			Assert-MockCalled Test-Path -Exactly -Times 1;
 			Assert-MockCalled Get-Violations -Exactly -Times 3;
+			Assert-MockCalled Get-GitLogForFile -Exactly -Times 1;
 		}
 	}
 
