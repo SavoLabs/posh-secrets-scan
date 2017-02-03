@@ -242,8 +242,10 @@ function Execute-GitLogCommand {
 	}
 	process {
 		if ((Get-Command -Name $git -ErrorAction SilentlyContinue)) {
+			"invoke" | Write-Warning;
 			return (Invoke-Expression "$git log -$CommitCount -p $Path *>&1") -join "`n";
 		} else {
+			"no command" | Write-Warning;
 			return $null;
 		}
 	}
