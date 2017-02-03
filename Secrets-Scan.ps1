@@ -66,6 +66,7 @@ function Scan-Path {
 						}
 					};
 					$logContent = (Get-GitLogForFile -Path $item.FullName) | foreach {
+						"logContent: $logContent" | write-warning;
 						$xContent = $_;
 						$commitScannedCount++;
 						(Get-Violations -Rules $rules -Data @{ Content = $xContent.Content; Name = $xContent.Name; }) | foreach {
