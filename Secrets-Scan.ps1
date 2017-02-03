@@ -8,7 +8,6 @@ param (
 	[Alias("Q")]
 	[Parameter(Mandatory=$false,ValueFromPipeline=$true, ParameterSetName="Scan")]
 	[Switch] $Quiet
-
 )
 
 function Load-Rules {
@@ -21,6 +20,7 @@ function Load-Rules {
     return Get-Content -Raw -Path (Resolve-Path -Path $Path)  | ConvertFrom-Json;
   }
 }
+
 function Scan-Path {
   param (
 		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
@@ -40,13 +40,18 @@ function Scan-Path {
 			$localRules = Load-Rules -Path $lrf;
 			$rules = Merge-JSON -Base $rules -Ext $localRules;
 		}
-		$children = @(Get-ChildItem -Path $resolvedPath -Recurse -Force | where { $_.GetType().Name -eq "FileInfo" });
+		# TODO: refactor this to not recurse here. It is slow.
+		$children = @(Get-ChildItem -Path $resolvedPath -Recurse -Force | where { $_.GetType().Name -eq "FileInfo" -and $_.Name -ne ".secrets-scan.json" });
 		[System.Collections.ArrayList] $violations = @();
 		[System.Collections.ArrayList] $warnings = @();
 		$stopWatch = [Diagnostics.Stopwatch]::StartNew();
 		$filesScannedCount = 0;
+		$commitScannedCount = 0;
+		$cwd = Get-Location;
+		Set-Location -Path $resolvedPath;
 	}
   process {
+
 		$exitResult = 0;
 		try {
 			for($i = 0; $i -lt $children.Count; ++$i) {
@@ -54,92 +59,52 @@ function Scan-Path {
 	      $item = $children[$i];
 	      if ( -not $item.PSIsContainer ) {
 					$filesScannedCount++;
-					$content = Get-Content -Path $item.FullName;
-					for($y = 0; $y -lt $rules.patterns.Count; ++$y) {
-	        # $rules.patterns | foreach {
-						$pattern = $rules.patterns[$y];
-	          $content | Select-String -Pattern $pattern -AllMatches | foreach { $_.Matches; } | foreach {
-							$match = $_;
-							$m = $match.Groups[0].Value;
-	            $result = "$($item.FullName): $($match)";
-							if ( $violations.IndexOf($result) -ge 0 ) {
-								continue;
+					$content = (Get-Content -Path $item.FullName);
+					(Get-Violations -Rules $rules -Data @{ Content = $content; Name = $item.FullName; }) | foreach {
+						if($violations.IndexOf($_) -lt 0) {
+							$violations.Add($_) | Out-Null;
+						}
+					};
+					$logContent = (Get-GitLogForFile -Path $item.FullName) | foreach {
+						$xContent = $_;
+						$commitScannedCount++;
+						(Get-Violations -Rules $rules -Data @{ Content = $xContent.Content; Name = $xContent.Name; }) | foreach {
+							if($violations.IndexOf($_) -lt 0) {
+								$violations.Add($_) | Out-Null;
 							}
-							$violations.Add($result) | Out-Null;
-	          };
-	        };
+						};
+					};
 	      } else {
 					# Ignore Folders
 	      }
 	    };
-			[System.Collections.ArrayList] $removeIndex = @();
-			for($a = 0; $a -lt $rules.allowed.Count; $a++) {
-				$allowed = $rules.allowed[$a];
-				for($x = $violations.Count; $x -ge 0; $x--) {
-					$v = $violations[$x];
-					$v | Select-String -Pattern $allowed -AllMatches | foreach { $_.Matches } | foreach {
-						$match = $_;
-						$m = $match.Groups[0].Value;
-						$vidx = $violations.IndexOf($v);
-						if($vidx -ge 0) {
-							$riidx = $removeIndex.IndexOf($vidx);
-							if(-not $removeIndex.Contains($vidx)) {
-								$removeIndex.Add($vidx);
-							}
-						}
-						if($warnings -notcontains $v) {
-							$warnings.Add($v) | Out-Null;
-						}
-					}
-				}
-			}
-			$removeIndex.sort();
-			$removeIndex.reverse();
-			$removeIndex | foreach {
-				 $violations.RemoveAt($_) | Out-Null;
-			 }
 
-			if($warnings.Count -gt 0 -and !$Quiet.IsPresent) {
-				if($warnings.Count -eq 1) {
-					$vtext = "Violation";
-					$wtext = "was";
-				} else {
-					$wtext = "were";
-					$vtext = "Violations";
-				}
-				"`n[Warning]: Found $($warnings.Count) $vtext that $wtext overridden by exception rules.`n" | Write-Host -foregroundcolor yellow;
-				$warnings | foreach { "`t[-] $_" | Write-Host -foregroundcolor yellow; };
-			}
-			if($violations.Count -gt 0) {
-				if(!$Quiet.IsPresent) {
-					if($violations.Count -eq 1) {
-						$vtext = "Violation";
-					} else {
-						$vtext = "Violations";
-					}
-					"`n[Error]: Found $($violations.Count) $vtext.`n" | Write-Host -foregroundcolor red;
-					$violations | foreach { "`t[x] $_" | Write-Host -foregroundcolor red; };
-					"`nPossible mitigations:`n
-- Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
-- Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.`n`n" | Write-Host;
-				}
-			}
+			$postProcess = Invoke-PostProcessViolations -Rules $rules -Violations $violations -Warnings $warnings;
+
+			$outViolations = Write-Violations -Violations $violations -Warnings $warnings -Quiet:$Quiet.IsPresent;
 	  } catch {
 			$_ | Write-Error;
 			exit 999;
-		}
+		} finally {
 
-		$stopWatch.Stop();
-		$time = $stopWatch.Elapsed;
-		if($filesScannedCount -eq 1) {
-			$filesText = "file";
-		} else {
+			$stopWatch.Stop();
+			$time = $stopWatch.Elapsed;
 			$filesText = "files";
+			if($filesScannedCount -eq 1) {
+				$filesText = "file";
+			}
+			$commitsText = "commits";
+			if($commitScannedCount -eq 1) {
+				$commitsText = "commit";
+			}
+
+			if(!$Quiet.IsPresent) {
+				"`n[Scanned $filesScannedCount $filesText and $commitScannedCount $commitsText in $time]`n" | Write-Host;
+			}
+
+			Set-Location -Path $cwd;
 		}
 
-		if(!$Quiet.IsPresent) {
-			"`n[Scanned $filesScannedCount $filesText in $time]`n" | Write-Host;
-		}
 		return @{
 			rules = $rules;
 			violations = $violations;
@@ -147,6 +112,168 @@ function Scan-Path {
 		};
 
 		exit $violations.Count;
+	}
+}
+
+function Write-Violations {
+	param (
+		[System.Collections.ArrayList] $Violations,
+		[System.Collections.ArrayList] $Warnings,
+		[Switch] $Quiet
+	)
+	process {
+		if($Warnings.Count -gt 0 -and !$Quiet.IsPresent) {
+			if($Warnings.Count -eq 1) {
+				$vtext = "Violation";
+				$wtext = "was";
+			} else {
+				$wtext = "were";
+				$vtext = "Violations";
+			}
+			"`n[Warning]: Found $($Warnings.Count) $vtext that $wtext overridden by exception rules.`n" | Write-Host -foregroundcolor yellow;
+			$Warnings | foreach { "`t[-] $_" | Write-Host -foregroundcolor yellow; };
+		}
+		if($Violations.Count -gt 0) {
+			if(!$Quiet.IsPresent) {
+				if($Violations.Count -eq 1) {
+					$vtext = "Violation";
+				} else {
+					$vtext = "Violations";
+				}
+				"`n[Error]: Found $($Violations.Count) $vtext.`n" | Write-Host -foregroundcolor red;
+				$Violations | foreach { "`t[x] $_" | Write-Host -foregroundcolor red; };
+				"`nPossible mitigations:`n
+	- Mark false positives as allowed by adding exceptions to '.secrets-scan.json'
+	- Revoke the Secret that was identified. The secret is no longer secure as it now exists in the commit history, even if removed from code.`n`n" | Write-Host;
+			}
+		}
+
+		return @{
+			violations = $Violations;
+			warnings = $Warnings;
+		};
+	}
+}
+
+function Invoke-PostProcessViolations {
+	param (
+		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+		[PSCustomObject]$Rules,
+		[System.Collections.ArrayList] $Violations,
+		[System.Collections.ArrayList] $Warnings
+	)
+	process {
+		[System.Collections.ArrayList] $removeIndex = @();
+		for($a = 0; $a -lt $Rules.allowed.Count; $a++) {
+			$allowed = $Rules.allowed[$a];
+			for($x = $Violations.Count; $x -ge 0; $x--) {
+				$v = $Violations[$x];
+				$v | Select-String -Pattern $allowed -AllMatches | foreach { $_.Matches } | foreach {
+					$match = $_;
+					$m = $match.Groups[0].Value;
+					$vidx = $Violations.IndexOf($v);
+					if($vidx -ge 0) {
+						$riidx = $removeIndex.IndexOf($vidx);
+						if(-not $removeIndex.Contains($vidx)) {
+							$removeIndex.Add($vidx);
+						}
+					}
+					if($Warnings -notcontains $v) {
+						$Warnings.Add($v) | Out-Null;
+					}
+				}
+			}
+		}
+		$removeIndex.sort() | Out-Null;
+		$removeIndex.reverse() | Out-Null;
+		$removeIndex | foreach {
+			$Violations.RemoveAt($_) | Out-Null;
+	 	}
+		return @{
+			violations = $Violations;
+			warnings = $Warnings;
+		}
+	}
+}
+
+function Get-GitLogForFile {
+	param (
+		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+		[ValidateScript({Test-Path $_})]
+		[String] $Path
+	)
+
+	process {
+		$output = Execute-GitLogCommand -Path $Path;
+		[System.Collections.ArrayList]$dataList = @();
+		if($output -ne $null) {
+			$currentSHA = "";
+			$SHAregex = "(\b[0-9a-f]{5,40}\b)$";
+			$commitSHA1Regex = "(?mi)commit\s$SHAregex";
+			[regex]::split($output, $commitSHA1Regex) | foreach {
+				if($_ -match $SHAregex) {
+					$currentSHA = $_;
+				} else {
+					if($currentSHA -ne "") {
+						"Add SHA : $currentSHA" | Write-Warning;
+						$dataList.Add(@{
+							Name = "$($Path): [Commit]$currentSHA";
+							Content = $_;
+						}) | Out-Null;
+					}
+				}
+			}
+			return [System.Collections.ArrayList]$dataList;
+		} else {
+			return [System.Collections.ArrayList]@();
+		}
+	}
+}
+
+function Execute-GitLogCommand {
+	param (
+		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+		[ValidateScript({Test-Path $_})]
+		[String] $Path,
+		[Int] $CommitCount = 3
+	)
+	begin {
+		$git = "git.exe";
+	}
+	process {
+		if ((Get-Command -Name $git -ErrorAction SilentlyContinue)) {
+			return (Invoke-Expression "$git log -$CommitCount -p $Path *>&1") -join "`n";
+		} else {
+			return $null;
+		}
+	}
+}
+
+function Get-Violations {
+	param(
+		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+		[PSCustomObject] $Data,
+		[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+		[PSCustomObject] $Rules
+	)
+	begin {
+		[System.Collections.ArrayList] $ruleViolations = New-Object System.Collections.ArrayList;
+	}
+	process {
+		for($y = 0; $y -lt $Rules.patterns.Count; ++$y) {
+		# $rules.patterns | foreach {
+			$pattern = $Rules.patterns[$y];
+			$Data.Content | Select-String -Pattern $pattern -AllMatches | foreach { $_.Matches; } | foreach {
+				$match = $_;
+				$m = $match.Groups[0].Value;
+				$result = "$($Data.Name): $($match)";
+				if ( $ruleViolations.IndexOf($result) -ge 0 ) {
+					continue;
+				}
+				$ruleViolations.Add($result) | Out-Null;
+			};
+		};
+		return [Array]$ruleViolations;
 	}
 }
 
