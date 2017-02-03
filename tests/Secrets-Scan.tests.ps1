@@ -591,6 +591,7 @@ Describe "Get-GitLogForFile" {
 			Mock Get-Command { return $true; }
 			Mock Invoke-Expression { return; }
 			$result = Get-GitLogForFile -Path $testFile;
+			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 1;
 			$result | Should Not Be $null;
 			$result.Count | Should Be 2;
 			$result | foreach {
@@ -598,7 +599,6 @@ Describe "Get-GitLogForFile" {
 				$_.Name -match "\[Commit\](\b[0-9a-f]{5,40}\b)`$" | Should Be $true;
 			}
 			Assert-MockCalled Test-Path -Exactly -Times 2;
-			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 1;
 			Assert-MockCalled Get-Command -Exactly -Times 0;
 			Assert-MockCalled Invoke-Expression -Exactly -Times 0;
 		}

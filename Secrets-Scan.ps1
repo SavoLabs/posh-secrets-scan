@@ -223,11 +223,10 @@ function Get-GitLogForFile {
 					}
 				}
 			}
+			return [System.Collections.ArrayList]$dataList;
 		} else {
-			"output null" | Write-Warning;
 			return [System.Collections.ArrayList]@();
 		}
-		return [System.Collections.ArrayList]$dataList;
 	}
 }
 
