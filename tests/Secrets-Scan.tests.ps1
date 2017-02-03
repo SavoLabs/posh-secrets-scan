@@ -255,10 +255,10 @@ Describe "Scan-Path" {
 			$result.rules.allowed.Count | Should Be 5;
 			$result.violations | Should Not Be $null;
 			$result.warnings | Should Not Be $null;
-			$result.warnings.Count | Should Be 5;
+			$result.warnings.Count | Should Be 4;
 			$result.violations.Count | Should Be 5;
 			Assert-MockCalled Write-Violations -Exactly -Times 2;
-			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 4;
+			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 2;
 		}
 	}
 	Context "When an entire file is in the allowed" {
@@ -278,7 +278,7 @@ Describe "Scan-Path" {
 			$result.warnings | Should Not Be $null;
 			$result.warnings.Count | Should Be 9;
 			Assert-MockCalled Write-Violations -Exactly -Times 2;
-			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 4;
+			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 2;
 		}
 	}
 	Context "When file contains private key and other content" {
@@ -315,7 +315,7 @@ Describe "Scan-Path" {
 			$result.warnings.Count | Should Be 1;
 			$result.violations.Count | Should Be 0;
 			Assert-MockCalled Write-Violations -Exactly -Times 1;
-			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 2;
+			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 1;
 		}
 	}
 
@@ -335,7 +335,7 @@ Describe "Scan-Path" {
 			$result.warnings.Count | Should Be 5;
 			$result.violations.Count | Should Be 0;
 			Assert-MockCalled Write-Violations -Exactly -Times 1;
-			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 2;
+			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 1;
 		}
 	}
 
