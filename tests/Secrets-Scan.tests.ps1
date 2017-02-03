@@ -211,11 +211,14 @@ Describe "Scan-Path" {
 				return $gitLog;
 			}
 			Mock Get-Violations {
-				return [Array]@("$TestDrive\$($historyFile): [Commit]<FAKESHA>: violation 1", "$TestDrive\$($historyFile): [Commit]<FAKESHA>: violation 2");
+				return [System.Collections.ArrayList]@(
+					"$TestDrive\$($historyFile): [Commit]<FAKESHA>: Violation 1",
+					"$TestDrive\$($historyFile): [Commit]<FAKESHA>: Violation 2"
+				);
 			};
 			Mock Get-Command { return $true; };
 			Mock Get-GitLogForFile {
-				return [Array]@({
+				return [System.Collections.ArrayList]@({
 					Name= "$TestDrive\$($historyFile): [Commit]<FAKESHA>"
 					Content= "Fake Content That Doesn't Matter"
 				}, {
@@ -237,6 +240,45 @@ Describe "Scan-Path" {
 			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 0;
 			Assert-MockCalled Test-Path -Exactly -Times 1;
 			Assert-MockCalled Get-Violations -Exactly -Times 3;
+			Assert-MockCalled Get-GitLogForFile -Exactly -Times 1;
+		}
+	}
+
+	Context "When has commit history with duplication violations" {
+		It "Must not report duplicates" {
+			$historyFile = "repo\some-file.txt";
+			Mock Write-Violations {};
+			Mock Test-Path { return $true; } -ParameterFilter { $Path -eq "$TestDrive\$historyFile" };
+			Mock Execute-GitLogCommand {
+				return $gitLog;
+			}
+			Mock Get-Violations {
+				return [System.Collections.ArrayList]@(
+					"$TestDrive\$($historyFile): [Commit]<FAKESHA>: Violation 1",
+					"$TestDrive\$($historyFile): [Commit]<FAKESHA>: Violation 1"
+				);
+			};
+			Mock Get-Command { return $true; };
+			Mock Get-GitLogForFile {
+				return [System.Collections.ArrayList]@({
+					Name= "$TestDrive\$($historyFile): [Commit]<FAKESHA>"
+					Content= "Fake Content That Doesn't Matter"
+				});
+			}
+
+			Setup -Directory "repo";
+			Setup -File ".secrets-scan.json" -Content $configPrimary;
+			Setup -File "repo\some-file.txt" -Content "some text";
+			$result = Scan-Path -Path "$TestDrive\repo" -ConfigFile "$TestDrive\.secrets-scan.json" -Quiet;
+			$result | Should Not Be $null;
+			$result.violations | Should Not Be $null;
+			$result.warnings | Should Be $null;
+			$result.violations.Count | Should Be 1;
+			Assert-MockCalled Get-Command -Exactly -Times 0;
+			Assert-MockCalled Write-Violations -Exactly -Times 1;
+			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 0;
+			Assert-MockCalled Test-Path -Exactly -Times 1;
+			Assert-MockCalled Get-Violations -Exactly -Times 2;
 			Assert-MockCalled Get-GitLogForFile -Exactly -Times 1;
 		}
 	}

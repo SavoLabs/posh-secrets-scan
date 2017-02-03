@@ -45,4 +45,19 @@ Describe "Initialize-SecretScan" {
 			Remove-Item -Path "$TestDrive\scripts" -Force -Recurse | Out-Null;
 		}
 	}
+
+	Context "When Invoke-WebRequest throws exception" {
+		It "Must catch the exception and log it" {
+			$warnings = ""
+			Mock Invoke-WebRequest { throw "Invalid Request"; };
+			Mock Write-Warning { return $Message; };
+			Mock Test-Path { return $true; };
+			Mock Resolve-Path { return "$TestDrive\fake-path"; };
+			$result = Initialize-SecretScan -Path ".\fake-path";
+			Assert-MockCalled Invoke-WebRequest -Exactly -Times 1;
+			Assert-MockCalled Test-Path -Exactly -Times 1;
+			Assert-MockCalled Write-Warning -Exactly -Times 1;
+			$result | Should BeExactly "Invalid Request";
+		}
+	}
 }
