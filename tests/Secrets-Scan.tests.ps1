@@ -547,6 +547,7 @@ Describe "Get-GitLogForFile" {
 			Mock Test-Path { return $true; } -ParameterFilter { $Path -eq $testFile };
 			Mock Execute-GitLogCommand { return $gitLog; } -ParameterFilter { $Path -eq $testFile };
 			Mock Get-Command { return $true; }
+			Mock Invoke-Expression { return; }
 			$result = Get-GitLogForFile -Path $testFile;
 			$result | Should Not Be $null;
 			$result.Count | Should Be 2;
@@ -557,6 +558,7 @@ Describe "Get-GitLogForFile" {
 			Assert-MockCalled Test-Path -Exactly -Times 2;
 			Assert-MockCalled Execute-GitLogCommand -Exactly -Times 1;
 			Assert-MockCalled Get-Command -Exactly -Times 0;
+			Assert-MockCalled Invoke-Expression -Exactly -Times 0;
 		}
 	}
 
