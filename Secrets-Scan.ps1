@@ -206,6 +206,7 @@ function Get-GitLogForFile {
 
 	process {
 		$output = Execute-GitLogCommand -Path $Path;
+		$output | write-warning;
 		[System.Collections.ArrayList]$dataList = @();
 		if($output -ne $null) {
 			$currentSHA = "";
@@ -223,7 +224,8 @@ function Get-GitLogForFile {
 					}
 				}
 			}
-		} else{
+		} else {
+			"no output found" | write-warning;
 			return @();
 		}
 		return $dataList;
