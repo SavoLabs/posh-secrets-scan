@@ -587,7 +587,7 @@ Describe "Get-GitLogForFile" {
 		It "Must get the log and return the content plus the SHA" {
 			$testFile = "c:\mock\my-secrets.txt";
 			Mock Test-Path { return $true; } -ParameterFilter { $Path -eq $testFile };
-			Mock Execute-GitLogCommand { return $gitLog; } -ParameterFilter { $Path -eq $testFile };
+			Mock Execute-GitLogCommand { return $gitLog; };
 			Mock Get-Command { return $true; }
 			Mock Invoke-Expression { return; }
 			$result = Get-GitLogForFile -Path $testFile;
