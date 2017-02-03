@@ -41,7 +41,7 @@ function Scan-Path {
 			$rules = Merge-JSON -Base $rules -Ext $localRules;
 		}
 		# TODO: refactor this to not recurse here. It is slow.
-		$children = @(Get-ChildItem -Path $resolvedPath -Recurse -Force | where { $_.GetType().Name -eq "FileInfo" });
+		$children = @(Get-ChildItem -Path $resolvedPath -Recurse -Force | where { $_.GetType().Name -eq "FileInfo" -and $_.Name -ne ".secrets-scan.json" });
 		[System.Collections.ArrayList] $violations = @();
 		[System.Collections.ArrayList] $warnings = @();
 		$stopWatch = [Diagnostics.Stopwatch]::StartNew();
