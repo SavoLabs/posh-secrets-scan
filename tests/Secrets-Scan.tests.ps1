@@ -43,8 +43,7 @@ $configTertiary = "{
 		`"PnsrlQ4QaWqISJ5zcNkma1ClqHBshI0Y65mYwnNT`",
 		`"RtwpOEp4IeQqHawn7hsBIC13Cap2qCt1AmQqIOMY`",
 		`"aws_account_id:129398745743`"
-	],
-	`"commits`": true
+	]
 }";
 
 $configQuaternary = "{
@@ -53,7 +52,12 @@ $configQuaternary = "{
 	`"allowed`": [
 		`"\\\\repo\\\\readme.md`"
 	],
-	`"commits`": true
+	`"commits`": true,
+	`"complexObject`": {
+		`"foo`": {
+			`"test`": `"bar`"
+		}
+	}
 }";
 $privateKey = "-----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgFO/h8+74h1G6tMEvuv+Rg0SqAx//gZx2H2CJsnfy9Bdr0e0qvZD

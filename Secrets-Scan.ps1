@@ -218,7 +218,6 @@ function Get-GitLogForFile {
 					$currentSHA = $_;
 				} else {
 					if($currentSHA -ne "") {
-						"Add SHA : $currentSHA" | Write-Warning;
 						$dataList.Add(@{
 							Name = "$($Path): [Commit]$currentSHA";
 							Content = $_;
