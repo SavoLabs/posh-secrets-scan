@@ -23,7 +23,8 @@ $configPrimary = "{
 	`"allowed`": [
 		`"AKIAIOSFODNN7EXAMPLE`",
 		`"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`"
-	]
+	],
+	`"commits`": true
 }";
 
 $configSecondary = "{
@@ -31,7 +32,8 @@ $configSecondary = "{
 	],
 	`"allowed`": [
 		`"\\\\repo\\\\my-secrets\\.txt`"
-	]
+	],
+	`"commits`": true
 }";
 
 $configTertiary = "{
@@ -49,7 +51,13 @@ $configQuaternary = "{
 	],
 	`"allowed`": [
 		`"\\\\repo\\\\readme.md`"
-	]
+	],
+	`"commits`": true,
+	`"complexObject`": {
+		`"foo`": {
+			`"test`": `"bar`"
+		}
+	}
 }";
 $privateKey = "-----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgFO/h8+74h1G6tMEvuv+Rg0SqAx//gZx2H2CJsnfy9Bdr0e0qvZD

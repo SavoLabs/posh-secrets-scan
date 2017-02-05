@@ -65,15 +65,18 @@ function Scan-Path {
 							$violations.Add($_) | Out-Null;
 						}
 					};
-					$logContent = (Get-GitLogForFile -Path $item.FullName) | foreach {
-						$xContent = $_;
-						$commitScannedCount++;
-						(Get-Violations -Rules $rules -Data @{ Content = $xContent.Content; Name = $xContent.Name; }) | foreach {
-							if($violations.IndexOf($_) -lt 0) {
-								$violations.Add($_) | Out-Null;
-							}
+					# should we scan commits
+					if($rules.commits) {
+						$logContent = (Get-GitLogForFile -Path $item.FullName) | foreach {
+							$xContent = $_;
+							$commitScannedCount++;
+							(Get-Violations -Rules $rules -Data @{ Content = $xContent.Content; Name = $xContent.Name; }) | foreach {
+								if($violations.IndexOf($_) -lt 0) {
+									$violations.Add($_) | Out-Null;
+								}
+							};
 						};
-					};
+					}
 	      } else {
 					# Ignore Folders
 	      }
@@ -215,7 +218,6 @@ function Get-GitLogForFile {
 					$currentSHA = $_;
 				} else {
 					if($currentSHA -ne "") {
-						"Add SHA : $currentSHA" | Write-Warning;
 						$dataList.Add(@{
 							Name = "$($Path): [Commit]$currentSHA";
 							Content = $_;

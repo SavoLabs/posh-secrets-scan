@@ -70,6 +70,8 @@ the last 4 commits, and those diffs will be scanned.
 Voilations that are found within the commit history will be identified by having `[Commit]` and
 the commit `SHA Hash`. An example can be found below under [Allowed](#allowed).
 
+To disable scanning of commit history, set `commits: false` in the `.secrets-scan.json` file.
+
 ### Violations
 
 The `exit code` of the script will be `0` for success, or it will be the count of the number of `Violations` found. The script will output the full path of the files that have violations, and the matching violation. `Warnings` will not change the `exit code`.
@@ -125,6 +127,7 @@ Ideally, only _basic_ exceptions should be defined in the main `.secrets-scan.js
 	"allowed": [
 		"AKIAIOSFODNN7EXAMPLE",
 		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-	]
+	],
+	"commits": true
 }
 ```
